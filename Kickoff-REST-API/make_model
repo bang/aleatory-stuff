@@ -1,0 +1,13 @@
+export OPENGATES_DB_SCHEMA=opengates
+export OPENGATES_DB_NAME=carneirao
+export OPENGATES_DB_USER=carneirao
+export OPENGATES_DB_PASSWORD=crinus666
+
+script/api_create.pl model APIDB DBIC::Schema \
+ API::Schema create=static db_schema=$OPENGATES_DB_SCHEMA \
+ compontents=TimeStamp,PassPhraseColumn \
+ dbi:Pg:dbname=$OPENGATES_DB_NAME $OPENGATES_DB_USER $OPENGATES_DB_PASSWORD
+
+#The schemas names are not automatically added to table names in the table classes. I know it's ugly, but I don't know yet how to do this nicely.
+perl -i -pe 's/table\(\"/table("$ENV{OPENGATES_DB_SCHEMA}./g if $_ !~ /opengates\./;  ' lib/API/Schema/Result/*.pm
+

@@ -1,0 +1,25 @@
+OPENGATES API OVERVIEW
+
+Version 0.00006
+
+OVERVIEW
+
+This API cover all actions under accounts, resources and groups. The request always returns a JSON
+with the result of the requests.
+
+IMPLEMENTED ENDPOINTS
+
+ POST /login - returns the access key to perform actions on API
+
+ Parameters:
+ - email
+ - password
+
+
+ POST /logout - expires all access keys for the current account.
+ 
+ Parameters: no parameters needed.
+
+
+
+
