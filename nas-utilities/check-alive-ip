@@ -1,0 +1,16 @@
+#! /usr/bin/perl
+
+use strict;
+use warnings;
+use feature qw/say/;
+use Net::Ping;
+
+my $p = Net::Ping->new();
+
+
+foreach my $frag(100..200){
+  my $ip = '192.168.1.' . $frag;
+  my $r = $p->ping($ip) ? 'is alive!' : 'is dead!';
+  say "$ip $r";
+  
+}

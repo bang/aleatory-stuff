@@ -1,0 +1,33 @@
+#! /bin/bash
+
+#directory where NAS will be mount
+nas_mountpoint="/mnt/nas"
+
+if [ ! -d "$nas_mountpoint" ]; then
+  r=`sudo mkdir $nas_mountpoint`;
+  if [ ! -z "$r" ]; then
+    echo "Problems to create dir '$nas_point'. Aborting...";
+    exit;
+  fi
+fi
+
+
+base="192.168.1."
+for frag in "100" "101" "102" "103" "104" "105"
+do
+  ip="$base$frag";
+  parse=`curl -s -k "https://$ip" |grep "ShareCenter"`;
+  if [ "$parse" ]; then  
+    echo "Found NAS on IP: $ip";
+    echo "mounting nas in $nas_mountpoint";
+    r=`sudo mount -tnfs $ip:/mnt/HD/HD_a2 /mnt/nas/`;
+    if [ ! -z "$r" ]; then
+      echo "Problems when mount '$nas_mountpoint'. Aborting...";
+    else
+      echo "mount in '$nas_mountpoint' ok!";
+      exit;
+    fi
+  fi
+done
+
+exit;
