@@ -1,3 +1,0 @@
-export OPENGATES_API_DIR=`pwd`
-echo "OPENGATES_API_DIR: $OPENGATES_API_DIR"
-perl -MFile::Find -Mcommon::sense -MData::Dumper  -e 'use File::Path qw/make_path/;find(sub { my $f = $File::Find::name if -f and $_ !~ /^\./ and $_ =~ /\.pm$/; if(defined $f && $f){ my @Path = split/\//,$f; pop @Path; my $dir= join "/",@Path; my $base="doc"; my $newdir = join("/", $base,$dir); make_path("$ENV{OPENGATES_API_DIR}/$newdir" ); my $api_dir=$ENV{"OPENGATES_API_DIR"};  system "pod2markdown < $api_dir/$f >$api_dir/doc/$f.md  "   }  }, @ARGV);' lib

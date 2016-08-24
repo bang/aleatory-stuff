@@ -1,1 +1,0 @@
-OPENGATES_REDIS_SERVER_HOST=localhost OPENGATES_REDIS_SERVER_PORT=6379  prove -I ../Jobs/lib/ -I lib -l t/
