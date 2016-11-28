@@ -1,0 +1,1 @@
+sudo iptables -A INPUT -s 192.168.1.102 -d "facebook.com" -j REJECT && sudo iptables -A OUTPUT -s 192.168.1.102 -d "facebook.com" -j REJECT
