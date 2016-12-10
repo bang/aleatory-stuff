@@ -1,33 +1,122 @@
 #! /bin/bash
 
+## Color constants
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+CYAN='\033[0;36m'
+BLUE='\033[0;34m'
+YELLOW='\033[0;33m'
+NC='\033[0m'
+## Config
+base="192.168.1."
+ip_range=("100" "101" "102" "103" "104" "105" "106" "107" "108" "109" "110")
+
+#cache data and others
+data_dir=$HOME/.make_nas
+
 #directory where NAS will be mount
 nas_mountpoint="/mnt/nas"
 
+## End Config
+
+
+
+## Functions
+
+function track_ip {
+  ip=$1
+  ok=0
+  if [ -z "$ip" ]; then
+
+    for frag in ${ip_range[@]}
+    do
+      ip="$base$frag";
+      echo "checking IP $ip"
+      parse=`curl --connect-timeout 5 -s -k "https://$ip" |grep "ShareCenter"`;
+      if [ "$parse" ]; then  
+        echo "Found NAS on IP: $ip";
+        echo "mounting nas in $nas_mountpoint";
+        r=`sudo mount -tnfs $ip:/mnt/HD/HD_a2 /mnt/nas/`;
+        if [ ! -z "$r" ]; then
+          echo "Problems when mount '$nas_mountpoint'. Aborting...";
+          read -rsp $'Press any key to continue...\n' -n1 key
+          exit;
+        else
+          printf "\n${GREEN}mount in '$nas_mountpoint' from '$ip' ok!${NC}\n";
+          echo $ip >$data_dir/last_nas_ip
+          ok=1
+          break;
+        fi
+      fi
+    done
+    
+    if [ -z "$ok" ];then
+      printf "\n${YELLOW}There is no NAS found in IP range. Please reconfigure variables 'ip_range' and 'base' if necessary!${NC}\n"
+      read -rsp $'Press any key to continue...\n' -n1 key
+      exit;
+    fi
+  else
+    echo "Trying to find NAS..."
+
+    #scraping the NAS web page on CURL response content with grep command
+    parse=`curl --connect-timeout 5 -s -k "https://$ip" |grep "ShareCenter"`;
+    
+    #Mount NAS in $nas_mountpoint if found. Otherwise abort!
+    if [ "$parse" ]; then  
+      echo "Found NAS on IP: $ip";
+      echo "mounting nas in $nas_mountpoint";
+      r=`sudo mount -tnfs $ip:/mnt/HD/HD_a2 $nas_mountpoint`;
+      if [ ! -z "$r" ]; then
+        printf "\n${RED}Problems when mount '$nas_mountpoint'. Aborting...${NC}\n";
+      else
+        printf "\n${GREEN}mount in '$nas_mountpoint' from '$ip' ok!${NC}\n";
+        echo $ip >$data_dir/last_nas_ip
+        read -rsp $'Press any key to continue...\n' -n1 key
+        exit;
+      fi
+    fi
+  fi
+  return $ok
+}
+
+## End Functions
+
+echo "Running..."
+
+#creating data_dir for storage ip data and others
+if [ ! -d "$data_dir" ]; then
+  echo "Creating data_dir for make_nas in '$data_dir'";
+  mkdir $data_dir
+fi
+
+echo "Checking NAS mount point in '$nas_mountpoint'"
 if [ ! -d "$nas_mountpoint" ]; then
   r=`sudo mkdir $nas_mountpoint`;
   if [ ! -z "$r" ]; then
-    echo "Problems to create dir '$nas_point'. Aborting...";
+    printf "\n${RED}Problems to create dir '$nas_point'. Aborting...${NC}\n";
+    read -rsp $'Press any key to continue...\n' -n1 key
     exit;
   fi
 fi
 
+echo "NAS mountpoint OK!"
+echo "Checking last NAS IP..."
+if [ -f "$data_dir/last_nas_ip" ]; then
+  
+  ip=`cat <$data_dir/last_nas_ip`
+  echo "Last NAS IP found: '$ip'"
+  track_ip $ip
+else
+  
+  echo "There is no IP registry for NAS!"
+  echo "Tracking NAS IP..."
+  track_ip
+fi
 
-base="192.168.1."
-for frag in "100" "101" "102" "103" "104" "105"
-do
-  ip="$base$frag";
-  parse=`curl -s -k "https://$ip" |grep "ShareCenter"`;
-  if [ "$parse" ]; then  
-    echo "Found NAS on IP: $ip";
-    echo "mounting nas in $nas_mountpoint";
-    r=`sudo mount -tnfs $ip:/mnt/HD/HD_a2 /mnt/nas/`;
-    if [ ! -z "$r" ]; then
-      echo "Problems when mount '$nas_mountpoint'. Aborting...";
-    else
-      echo "mount in '$nas_mountpoint' ok!";
-      exit;
-    fi
-  fi
-done
-
+read -rsp $'Press any key to continue...\n' -n1 key
 exit;
+
+
+
+
+
