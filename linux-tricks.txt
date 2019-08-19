@@ -1,0 +1,4 @@
+
+> Prints when 'some-dataset.csv' file has a number of columns different than 21
+cat some-dataset.csv | awk -F";" '{print NF}' | grep -n -v 21
+
