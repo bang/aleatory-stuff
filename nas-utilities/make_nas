@@ -7,58 +7,66 @@ CYAN='\033[0;36m'
 BLUE='\033[0;34m'
 YELLOW='\033[0;33m'
 NC='\033[0m'
+
 ## Config
-base="192.168.1."
-ip_range=("100" "101" "102" "103" "104" "105" "106" "107" "108" "109" "110")
 
 #cache data and others
-data_dir=$HOME/.make_nas
+data_dir=$HOME/.nas
 
 #directory where NAS will be mount
 nas_mountpoint="/mnt/nas"
 
 ## End Config
 
-
-
 ## Functions
+
 
 function track_ip {
   ip=$1
   ok=0
   if [ -z "$ip" ]; then
 
-    for frag in ${ip_range[@]}
+    # Getting Gateway IP
+    gateway=$(ip route show |head -n1|cut -d ' ' -f3)
+
+    # Getting all IPs that matters
+    iplist=`arp -a | cut -d ' ' -f2 | perl -ne 's/\(|\)//g;print$_;'`
+
+    # Iterating ignoring gateway
+    for ip in ${iplist[@]}
     do
-      ip="$base$frag";
-      echo "checking IP $ip"
-      parse=`curl --connect-timeout 5 -s -k "https://$ip" |grep "ShareCenter"`;
-      if [ "$parse" ]; then  
-        echo "Found NAS on IP: $ip";
-        echo "mounting nas in $nas_mountpoint";
-        r=`sudo mount -tnfs $ip:/mnt/HD/HD_a2 /mnt/nas/`;
-        if [ ! -z "$r" ]; then
-          echo "Problems when mount '$nas_mountpoint'. Aborting...";
-          read -rsp $'Press any key to continue...\n' -n1 key
-          exit;
-        else
-          printf "\n${GREEN}mount in '$nas_mountpoint' from '$ip' ok!${NC}\n";
-          echo $ip >$data_dir/last_nas_ip
-          ok=1
-          break;
+      if [ "$ip" == "$gateway" ]; then
+        continue
+      else
+        echo "checking IP $ip"
+        parse=`curl --connect-timeout 5 -s -k "https://$ip" |grep "ShareCenter"`;
+        if [ "$parse" ]; then  
+          echo "Found NAS on IP: $ip";
+          echo "mounting nas in $nas_mountpoint";
+          r=`sudo mount -tnfs $ip:/mnt/HD/HD_a2 /mnt/nas/`;
+          if [ ! -z "$r" ]; then
+            echo "Problems when mount '$nas_mountpoint'. Aborting...";
+            read -rsp $'Press any key to continue...\n' -n1 key
+            exit;
+          else
+            printf "\n${GREEN}mount in '$nas_mountpoint' from '$ip' ok!${NC}\n";
+            echo $ip >$data_dir/last_nas_ip
+            ok=1
+            break;
+          fi
         fi
       fi
     done
     
-    if [ -z "$ok" ];then
-      printf "\n${YELLOW}There is no NAS found in IP range. Please reconfigure variables 'ip_range' and 'base' if necessary!${NC}\n"
+    if [ $ok == 0 ];then
+      printf "\n${YELLOW}There is no NAS found in IP range! Check if NAS device is off or reconfigure 'ip_range' and 'base' variables in this file if necessary!${NC}\n"
       read -rsp $'Press any key to continue...\n' -n1 key
       exit;
     fi
   else
     echo "Trying to find NAS..."
 
-    #scraping the NAS web page on CURL response content with grep command
+    #scrapping the NAS web page on CURL response content with grep command
     parse=`curl --connect-timeout 5 -s -k "https://$ip" |grep "ShareCenter"`;
     
     #Mount NAS in $nas_mountpoint if found. Otherwise abort!
@@ -74,6 +82,10 @@ function track_ip {
         read -rsp $'Press any key to continue...\n' -n1 key
         exit;
       fi
+    else
+      printf "\n${YELLOW}There is no NAS found in IP range! Cehck if NAS device is off or reconfigure variables 'ip_range' and 'base' if necessary!${NC}\n"
+      read -rsp $'Press any key to continue...\n' -n1 key
+      exit;
     fi
   fi
   return $ok
@@ -81,7 +93,27 @@ function track_ip {
 
 ## End Functions
 
+## MAIN ##
+
 echo "Running..."
+
+#check if mountpoint is already mount. If it is, ask to umount
+if [ $(mount | grep -c "$nas_mountpoint" ) == 1 ]; then
+  printf "\n${YELLOW}'${nas_mountpoint}' is already mounted!\n${NC}";
+  read -p "Do you want to umount it(y/n)?" -n 1 -r
+  if [ $REPLY == "y" ]; then
+    printf "\n${YELLOW}Unmounting $nas_mountpoint${NC}"
+    r=`sudo umount $nas_mountpoint`
+    if [ -z "$r"]; then
+      printf "${GREEN}OK!${NC}"
+    fi
+    echo 'bye!';sleep 2
+    exit
+  else
+    printf "\n${GREEN}Nothing changes then! Bye! ${NC}";sleep 2
+    exit 0
+  fi
+fi
 
 #creating data_dir for storage ip data and others
 if [ ! -d "$data_dir" ]; then
@@ -117,6 +149,7 @@ read -rsp $'Press any key to continue...\n' -n1 key
 exit;
 
 
+## end MAIN ##
 
 
 
