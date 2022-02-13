@@ -10,8 +10,13 @@ data_dir=$HOME/.make_nas
 #directory where NAS will be mount
 nas_mountpoint="/mnt/nas"
 
-## End Config
-
+if [ ! -d "$nas_mountpoint" ]; then
+  r=`sudo mkdir $nas_mountpoint`;
+  if [ ! -z "$r" ]; then
+    echo "Problems to create dir '$nas_point'. Aborting...";
+    exit;
+  fi
+fi
 
 
 ## Functions
@@ -26,7 +31,7 @@ function track_ip {
       ip="$base$frag";
       echo "checking IP $ip"
       parse=`curl --connect-timeout 5 -s -k "https://$ip" |grep "ShareCenter"`;
-      if [ "$parse" ]; then  
+      if [ "$parse" ]; then
         echo "Found NAS on IP: $ip";
         echo "mounting nas in $nas_mountpoint";
         r=`sudo mount -tnfs $ip:/mnt/HD/HD_a2 /mnt/nas/`;
@@ -41,7 +46,7 @@ function track_ip {
         fi
       fi
     done
-    
+
     if [ -z "$ok" ];then
       echo "There is no NAS found in IP range. Please reconfigure variables 'ip_range' and 'base' if necessary!"
       exit;
@@ -51,9 +56,9 @@ function track_ip {
 
     #scraping the NAS web page on CURL response content with grep command
     parse=`curl --connect-timeout 5 -s -k "https://$ip" |grep "ShareCenter"`;
-    
+
     #Mount NAS in $nas_mountpoint if found. Otherwise abort!
-    if [ "$parse" ]; then  
+    if [ "$parse" ]; then
       echo "Found NAS on IP: $ip";
       echo "mounting nas in $nas_mountpoint";
       r=`sudo mount -tnfs $ip:/mnt/HD/HD_a2 $nas_mountpoint`;
@@ -91,20 +96,15 @@ fi
 echo "NAS mountpoint OK!"
 echo "Checking last NAS IP..."
 if [ -f "$data_dir/last_nas_ip" ]; then
-  
+
   ip=`cat <$data_dir/last_nas_ip`
   echo "Last NAS IP found: '$ip'"
   track_ip $ip
 else
-  
+
   echo "There is no IP registry for NAS!"
   echo "Tracking NAS IP..."
   track_ip
 fi
 
 exit;
-
-
-
-
-
