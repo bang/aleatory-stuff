@@ -1,0 +1,4 @@
+#! /usr/bin/bash
+
+docker ps -a | cut -d ' ' -f1 | tail -n +2 | xargs docker rm
+
